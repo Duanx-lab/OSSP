@@ -10,9 +10,13 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports: 
-    survival,
     ggplot2,
+    survival,
+    survminer,
+    cowplot,
     ggsci,
-    cluster,
+    survcomp,
+    RColorBrewer,
     stats,
-    graphics
+    graphics,
+    utils
