@@ -283,11 +283,23 @@ perc<-function(x){
   })
 }
 
+#' @import ggplot2
+#' @import survival
+#' @importFrom survminer ggsurvplot
+#' @importFrom cowplot theme_cowplot plot_grid
+#' @importFrom ggsci pal_npg pal_jco pal_lancet pal_jama
+#' @importFrom survcomp hazard.ratio
+#' @importFrom stats pchisq na.omit
+#' @importFrom utils head
+#' @export
 plot_KM <- function (clinical, labels, limit = NULL, annot = NULL, color = NULL,
                      xlab = "Follow up", ylab = "Survival Probability",
                      title = NULL, legend.pos = "top", palette = "jama_classic",
                      risk.table = T, risk.table.ratio = 0.4, anno.pos = "bottom",
                      anno.x.shift = 0.5)
+{
+  # ... 你原来的代码函数体 ...
+}
 {
   time <- clinical[, 1]
   event <- clinical[, 2] == 1
