@@ -73,13 +73,14 @@ run_ossp_analysis <- function(mydatGE, mydatME, mydatMI, K_clusters = 7) {
 #' @param survival_data 生存数据框，需包含 'Survival' 和 'Death' 列。
 #' @param labels 聚类标签向量。
 #'
+#' @import ggplot2
+#' @importFrom survival Surv
 #' @return 绘制并显示生存曲线图。
 #' @export
 plot_ossp_km <- function(survival_data, labels) {
   time <- as.numeric(survival_data$Survival)
   event <- as.numeric(survival_data$Death)
-  clins <- survival::Surv(time, event)
-
+  clins <- cbind(time, event) 
   plot_KM(
     clins,
     as.integer(labels),
