@@ -1,8 +1,7 @@
 Package: OSSP
 Title: Multi-Omics Integrative Clustering and Survival Analysis
-Version: 0.1.0
-Authors@R: 
-    person("Duanx", "lab", email = "y", role = c("aut", "cre"))
+Version: 0.1.1
+Authors@R: person("Duanx", "Lab", email = "2354348195a@.gmailcom", role = c("aut", "cre"))
 Description: A specialized tool for multi-omics data integration using 
     spectral clustering and automated feature dimension selection. It provides 
     end-to-end workflow from data preprocessing to Kaplan-Meier survival analysis.
@@ -11,4 +10,9 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports: 
-    survival
+    survival,
+    ggplot2,
+    ggsci,
+    cluster,
+    stats,
+    graphics
