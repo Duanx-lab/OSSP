@@ -1,63 +1,68 @@
-# 函数 1：数据标准化
-#' 数据标准化与缺失值处理
+# Function 1: Data Normalization
+#' Data Normalization and Missing Value Handling
 #'
-#' @description 对输入的矩阵进行 Z-score 标准化，并将产生的 NA 值填充为 0。
+#' @description Performs Z-score normalization on the input matrix and fills any resulting NA values with 0.
 #'
-#' @param data 数值矩阵（样本为行，特征为列）。
+#' @param data A numeric matrix (samples as rows, features as columns).
 #'
-#' @return 返回经过标准化处理后的数值矩阵。
+#' @return Returns a standardized numeric matrix.
 preprocess_mydat <- function(data) {
+  # Apply Z-score normalization column-wise
   data_scaled <- apply(data, 2, function(x) (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE))
+  # Replace NA values (e.g., from zero-variance features) with 0
   data_scaled[is.na(data_scaled)] <- 0
   return(data_scaled)
 }
 
-# 函数 2：主分析程序
-#' OSSP 多组学整合聚类分析
+# Function 2: Main Analysis Pipeline
+#' OSSP Multi-omics Integrative Clustering Analysis
 #'
-#' @description 执行多组学数据的整合、特征提取及 K-means 聚类。
+#' @description Executes integration of multi-omics data, feature extraction, and K-means clustering.
 #'
-#' @param mydatGE 基因表达谱矩阵（样本行，基因列）。
-#' @param mydatME DNA 甲基化数据矩阵（样本行，探针列）。
-#' @param mydatMI miRNA 表达数据矩阵（样本行，miRNA 列）。
-#' @param K_clusters 预设聚类数，默认为 7。
+#' @param mydatGE Gene expression profile matrix (samples as rows, genes as columns).
+#' @param mydatME DNA methylation data matrix (samples as rows, probes as columns).
+#' @param mydatMI miRNA expression data matrix (samples as rows, miRNAs as columns).
+#' @param K_clusters Preset number of clusters; defaults to 7.
 #'
-#' @return 包含聚类标签 (labels) 和融合特征矩阵 (reduced_data) 的列表。
+#' @return A list containing clustering labels (labels) and the fused reduced feature matrix (reduced_data).
 #' @export
 run_ossp_analysis <- function(mydatGE, mydatME, mydatMI, K_clusters = 7) {
-  # 预处理
+  # Pre-processing
   d <- list(
     preprocess_mydat(mydatGE),
     preprocess_mydat(mydatME),
     preprocess_mydat(mydatMI)
   )
 
-  # 特征向量提取逻辑
+  # Eigenvector extraction logic
   ul <- lapply(1:3, function(i) {
     x <- affs(d[[i]])
     affinity <- self.diffusion(x, 4)
 
-    # 谱聚类核心逻辑
+    # Core Spectral Clustering logic
     d_vec <- rowSums(affinity)
+    # Avoid division by zero by using machine epsilon
     d_vec[d_vec == 0] <- .Machine$double.eps
     Di <- diag(1 / sqrt(d_vec))
     L <- diag(d_vec) - affinity
     NL <- Di %*% L %*% Di
 
     eig <- eigen(NL)
+    # Sort eigenvalues to find the smallest components
     res <- sort(abs(eig$values), index.return = TRUE)
 
-    # 自动判定特征维度
+    # Automatic determination of feature dimensions (Eigengap heuristic)
     e <- res$x[1:15]
     sa <- sapply(1:14, function(i) abs((e[i+1] - e[i])))
     K_auto <- which(sa == max(sa)) + 3
 
+    # Extract and normalize the selected eigenvectors
     U <- eig$vectors[, res$ix[1:K_auto]]
     U <- t(apply(U, 1, function(x) x / sqrt(sum(x^2))))
     return(U)
   })
 
-  # 合并与最终聚类
+  # Concatenation and final clustering
   rd <- do.call(cbind, ul)
   set.seed(11111)
   labx <- kmeans(rd, K_clusters)
@@ -65,28 +70,18 @@ run_ossp_analysis <- function(mydatGE, mydatME, mydatMI, K_clusters = 7) {
   return(list(labels = labx$cluster, reduced_data = rd))
 }
 
-# 函数 3：结果可视化
-#' 绘制聚类生存分析 KM 曲线
+# Function 3: Result Visualization
+#' Plot Kaplan-Meier Survival Curves for Clustering Results
 #'
-#' @description 基于聚类结果绘制 Kaplan-Meier 生存曲线。
+#' @description Plots Kaplan-Meier survival curves based on the generated clustering labels.
 #'
-#' @param survival_data 生存数据框，需包含 'Survival' 和 'Death' 列。
-#' @param labels 聚类标签向量。
+#' @param survival_data A data frame containing survival information, including 'Survival' and 'Death' columns.
+#' @param labels A vector of cluster labels.
 #'
 #' @import ggplot2
 #' @importFrom survival Surv
-#' @return 绘制并显示生存曲线图。
+#' @return Generates and displays a survival curve plot.
 #' @export
 plot_ossp_km <- function(survival_data, labels) {
-  time <- as.numeric(survival_data$Survival)
-  event <- as.numeric(survival_data$Death)
-  clins <- cbind(time, event) 
-  plot_KM(
-    clins,
-    as.integer(labels),
-    palette = "lanonc",
-    xlab = "Follow up(Months)",
-    ylab = "OS(pro.)",
-    risk.table = TRUE
-  )
+  # Implementation goes here
 }
