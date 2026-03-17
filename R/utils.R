@@ -490,4 +490,3 @@ plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
     labels = apply(eigDiscrete, 1, which.max)
     return(labels)
   }
-}
