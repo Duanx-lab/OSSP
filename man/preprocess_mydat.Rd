@@ -2,16 +2,16 @@
 % Please edit documentation in R/ossp_core.R
 \name{preprocess_mydat}
 \alias{preprocess_mydat}
-\title{数据标准化与缺失值处理}
+\title{Data Normalization and Missing Value Handling}
 \usage{
 preprocess_mydat(data)
 }
 \arguments{
-\item{data}{数值矩阵（样本为行，特征为列）。}
+\item{data}{A numeric matrix (samples as rows, features as columns).}
 }
 \value{
-返回经过标准化处理后的数值矩阵。
+Returns a standardized numeric matrix.
 }
 \description{
-对输入的矩阵进行 Z-score 标准化，并将产生的 NA 值填充为 0。
+Performs Z-score normalization on the input matrix and fills any resulting NA values with 0.
 }

@@ -2,22 +2,22 @@
 % Please edit documentation in R/ossp_core.R
 \name{run_ossp_analysis}
 \alias{run_ossp_analysis}
-\title{OSSP 多组学整合聚类分析}
+\title{OSSP Multi-omics Integrative Clustering Analysis}
 \usage{
 run_ossp_analysis(mydatGE, mydatME, mydatMI, K_clusters = 7)
 }
 \arguments{
-\item{mydatGE}{基因表达谱矩阵（样本行，基因列）。}
+\item{mydatGE}{Gene expression profile matrix (samples as rows, genes as columns).}
 
-\item{mydatME}{DNA 甲基化数据矩阵（样本行，探针列）。}
+\item{mydatME}{DNA methylation data matrix (samples as rows, probes as columns).}
 
-\item{mydatMI}{miRNA 表达数据矩阵（样本行，miRNA 列）。}
+\item{mydatMI}{miRNA expression data matrix (samples as rows, miRNAs as columns).}
 
-\item{K_clusters}{预设聚类数，默认为 7。}
+\item{K_clusters}{Preset number of clusters; defaults to 7.}
 }
 \value{
-包含聚类标签 (labels) 和融合特征矩阵 (reduced_data) 的列表。
+A list containing clustering labels (labels) and the fused reduced feature matrix (reduced_data).
 }
 \description{
-执行多组学数据的整合、特征提取及 K-means 聚类。
+Executes integration of multi-omics data, feature extraction, and K-means clustering.
 }

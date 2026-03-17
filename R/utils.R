@@ -236,57 +236,57 @@ plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
                     risk.table = T, risk.table.ratio = 0.4, anno.pos = "bottom",
                     anno.x.shift = 0.5) {
 
- # Main KM Plotting Function
-plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
-                    xlab = "Follow up", ylab = "Survival Probability",
-                    title = NULL, legend.pos = "top", palette = "jama_classic",
-                    risk.table = T, risk.table.ratio = 0.4, anno.pos = "bottom",
-                    anno.x.shift = 0.5) {
+  # Main KM Plotting Function
+  plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
+                      xlab = "Follow up", ylab = "Survival Probability",
+                      title = NULL, legend.pos = "top", palette = "jama_classic",
+                      risk.table = T, risk.table.ratio = 0.4, anno.pos = "bottom",
+                      anno.x.shift = 0.5) {
 
-  # 1. Data Pre-processing
-  time <- clinical[, 1]
-  event <- clinical[, 2] == 1
-  if (!is.null(limit)) {
-    event[time > limit] <- FALSE
-    time[time > limit] <- limit
-  }
-  df <- data.frame(futime = time, fustat = event, group = labels)
-
-  # 2. Survival Analysis Calculation
-  surv <- survival::survfit(survival::Surv(futime, fustat) ~ group, data = df)
-  survstats <- survival::survdiff(survival::Surv(futime, fustat) ~ group, data = df)
-  survstats$p.value <- 1 - pchisq(survstats$chisq, length(survstats$n) - 1)
-
-  # 3. Color Handling
-  if (!is.null(color)) {
-    if (!is.null(names(color))) {
-      labels <- factor(labels, levels = names(color))
+    # 1. Data Pre-processing
+    time <- clinical[, 1]
+    event <- clinical[, 2] == 1
+    if (!is.null(limit)) {
+      event[time > limit] <- FALSE
+      time[time > limit] <- limit
     }
-  } else {
-    color <- get_color(palette, n = length(unique(labels)))
-  }
+    df <- data.frame(futime = time, fustat = event, group = labels)
 
-  # 4. Label Handling
-  if (inherits(labels, "factor")) {
-    legend.labs <- na.omit(levels(droplevels(labels[!(is.na(time) | is.na(event))])))
-  } else if (is.logical(labels)) {
-    labels <- factor(labels, levels = c(FALSE, TRUE))
-    legend.labs <- na.omit(levels(droplevels(labels)))
-  } else {
-    legend.labs <- na.omit(unique(labels))
-    labels <- factor(labels, levels = legend.labs)
-  }
+    # 2. Survival Analysis Calculation
+    surv <- survival::survfit(survival::Surv(futime, fustat) ~ group, data = df)
+    survstats <- survival::survdiff(survival::Surv(futime, fustat) ~ group, data = df)
+    survstats$p.value <- 1 - pchisq(survstats$chisq, length(survstats$n) - 1)
 
-  # 5. Scientific Notation Helper
-  fancy_scientific <- function(l, dig = 3) {
-    l <- format(l, digits = dig, scientific = TRUE)
-    l <- gsub("^(.*)e", "'\\1'e", l)
-    l <- gsub("e", "%*%10^", l)
-    parse(text = l)
-  }
+    # 3. Color Handling
+    if (!is.null(color)) {
+      if (!is.null(names(color))) {
+        labels <- factor(labels, levels = names(color))
+      }
+    } else {
+      color <- get_color(palette, n = length(unique(labels)))
+    }
 
-  # 6. Core Plotting
-  p <- survminer::ggsurvplot(surv, data = df, xlab = xlab,
+    # 4. Label Handling
+    if (inherits(labels, "factor")) {
+      legend.labs <- na.omit(levels(droplevels(labels[!(is.na(time) | is.na(event))])))
+    } else if (is.logical(labels)) {
+      labels <- factor(labels, levels = c(FALSE, TRUE))
+      legend.labs <- na.omit(levels(droplevels(labels)))
+    } else {
+      legend.labs <- na.omit(unique(labels))
+      labels <- factor(labels, levels = legend.labs)
+    }
+
+    # 5. Scientific Notation Helper
+    fancy_scientific <- function(l, dig = 3) {
+      l <- format(l, digits = dig, scientific = TRUE)
+      l <- gsub("^(.*)e", "'\\1'e", l)
+      l <- gsub("e", "%*%10^", l)
+      parse(text = l)
+    }
+
+    # 6. Core Plotting
+    p <- survminer::ggsurvplot(surv, data = df, xlab = xlab,
                                ylab = ylab, palette = color, legend = legend.pos,
                                legend.labs = legend.labs,
                                risk.table = risk.table,
@@ -294,199 +294,200 @@ plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
                                risk.table.y.text = FALSE,
                                ggtheme = cowplot::theme_cowplot())
 
-  p$plot <- p$plot + ggplot2::ggtitle(title) +
-    ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5),
-                   legend.title = ggplot2::element_blank())
+    p$plot <- p$plot + ggplot2::ggtitle(title) +
+      ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5),
+                     legend.title = ggplot2::element_blank())
 
-  # 7. Annotation Preparation
-  anno.text <- ifelse(survstats$p.value == 0, "italic(P)<1%*%10^{-22}",
-                      paste0("italic(P)==", fancy_scientific(survstats$p.value, 3)))
-  anno.y.shift <- 0
+    # 7. Annotation Preparation
+    anno.text <- ifelse(survstats$p.value == 0, "italic(P)<1%*%10^{-22}",
+                        paste0("italic(P)==", fancy_scientific(survstats$p.value, 3)))
+    anno.y.shift <- 0
 
-  if (length(legend.labs) == 2) {
-    hr <- survcomp::hazard.ratio(labels[!(is.na(time) | is.na(event))],
-                                  time[!(is.na(time) | is.na(event))],
-                                  event[!(is.na(time) | is.na(event))])
-    anno.text <- c(anno.text, sprintf("HR == %3.2f~(%3.2f - %3.2f)",
-                                      hr$hazard.ratio, hr$lower, hr$upper))
-    anno.y.shift <- c(anno.y.shift + 0.15, 0)
-  }
+    if (length(legend.labs) == 2) {
+      hr <- survcomp::hazard.ratio(labels[!(is.na(time) | is.na(event))],
+                                   time[!(is.na(time) | is.na(event))],
+                                   event[!(is.na(time) | is.na(event))])
+      anno.text <- c(anno.text, sprintf("HR == %3.2f~(%3.2f - %3.2f)",
+                                        hr$hazard.ratio, hr$lower, hr$upper))
+      anno.y.shift <- c(anno.y.shift + 0.15, 0)
+    }
 
-  if (!is.null(annot)) {
-    anno.text <- c(anno.text, annot)
-    anno.y.shift <- c(anno.y.shift + 0.15, 0)
-  }
+    if (!is.null(annot)) {
+      anno.text <- c(anno.text, annot)
+      anno.y.shift <- c(anno.y.shift + 0.15, 0)
+    }
 
-  # 8. Add Annotations to Plot
-  if (anno.pos == "bottom") {
-    p$plot <- p$plot + ggplot2::annotate("text", x = 0, y = anno.y.shift,
-                                         label = anno.text, hjust = 0, vjust = 0, parse = TRUE)
-  } else {
-    p$plot <- p$plot + ggplot2::annotate("text", x = anno.x.shift * max(time, na.rm = TRUE),
-                                         y = 0.85 + anno.y.shift, label = anno.text,
-                                         hjust = 0, vjust = 2, parse = TRUE)
-  }
+    # 8. Add Annotations to Plot
+    if (anno.pos == "bottom") {
+      p$plot <- p$plot + ggplot2::annotate("text", x = 0, y = anno.y.shift,
+                                           label = anno.text, hjust = 0, vjust = 0, parse = TRUE)
+    } else {
+      p$plot <- p$plot + ggplot2::annotate("text", x = anno.x.shift * max(time, na.rm = TRUE),
+                                           y = 0.85 + anno.y.shift, label = anno.text,
+                                           hjust = 0, vjust = 2, parse = TRUE)
+    }
 
-  # 9. Final Composition with Risk Table
-  if (risk.table) {
-    p$table <- p$table + ggplot2::theme(axis.title.y = ggplot2::element_blank())
-    pp <- cowplot::plot_grid(plotlist = list(p$plot + ggplot2::theme(axis.title.x = ggplot2::element_blank()),
-                                             p$table + ggplot2::labs(x = xlab)),
+    # 9. Final Composition with Risk Table
+    if (risk.table) {
+      p$table <- p$table + ggplot2::theme(axis.title.y = ggplot2::element_blank())
+      pp <- cowplot::plot_grid(plotlist = list(p$plot + ggplot2::theme(axis.title.x = ggplot2::element_blank()),
+                                               p$table + ggplot2::labs(x = xlab)),
                                labels = "", ncol = 1, align = "v",
                                rel_heights = c(1, risk.table.ratio))
-    return(pp)
-  } else {
-    return(p$plot)
+      return(pp)
+    } else {
+      return(p$plot)
+    }
   }
-}
 
-# Color palette helper
-get_color <- function(palette, n = 12) {
-  if(length(palette) > 1) return(palette)
+  # Color palette helper
+  get_color <- function(palette, n = 12) {
+    if(length(palette) > 1) return(palette)
 
-  switch(tolower(palette), nature = {
-    (ggsci::pal_npg("nrc"))(n)
-  }, jco = {
-    (ggsci::pal_jco("default"))(n)
-  }, lancet = {
-    (ggsci::pal_lancet("lanonc"))(n)
-  }, jama = {
-    ggsci::pal_jama()(n)
-  }, jama_classic = {
-    head(c("#164870", "#10B4F3", "#FAA935", "#2D292A", "#87AAB9", "#CAC27E", "#818282","#FE850F","#E6580E","#FC491C","#FC491C","#E6190E","#FE0F5A","#E9FF63","#E6A00E"), n)
-  },
-  RColorBrewer::brewer.pal(n, "Set1")
-  )
-}
-
-# Generate time-specific binary event matrix
-generate_time_event <- function(clinical, limits, labels = NULL) {
-  time <- clinical[, 1]
-  event <- clinical[, 2] == 1
-  df <- sapply(limits, function(limit) {
-    res <- event
-    res[time > limit] <- F
-    res
-  })
-  colnames(df) <- labels
-  df
-}
-
-# Default theme settings
-.onLoad <- function(libname, pkgname) {
-  ggplot2::theme_set(cowplot::theme_cowplot())
-}
-
-# Self-Diffusion algorithm for Affinity enhancement
-self.diffusion <- function(A, K) {
-  diag(A) = 0
-  sign_A = A
-  sign_A[which(A > 0, arr.ind = TRUE)] = 1
-  sign_A[which(A < 0, arr.ind = TRUE)] = -1
-
-  P = dominate.set(abs(A), min(K, nrow(A) - 1)) * sign_A
-  DD = apply(abs(P), MARGIN = 1, FUN = sum)
-  diag(P) = DD + 1
-  P = transition.fields(P)
-
-  eigen_P = eigen(P)
-  U = eigen_P$vectors
-  D = eigen_P$values
-  d = Re(D + .Machine$double.eps)
-
-  alpha = 0.8
-  beta = 2
-  d = ((1 - alpha) * d) / (1 - alpha * d^beta)
-
-  D = array(0, c(length(Re(d)), length(Re(d))))
-  diag(D) = Re(d)
-
-  W = U %*% D %*% t(U)
-  diagonal_matrix = array(0, c(nrow(W), ncol(W)))
-  diag(diagonal_matrix) = 1
-  W = (W * (1 - diagonal_matrix)) / apply(array(0, c(nrow(W), ncol(W))), MARGIN = 2, FUN = function(x) {x = (1 - diag(W))})
-  diag(D) = diag(D)[length(diag(D)):1]
-  W = diag(DD) %*% W
-  W = (W + t(W)) / 2
-  W[which(W < 0, arr.ind = TRUE)] = 0
-
-  return(W)
-}
-
-# Internal utility: Compute dominating set for K-nearest neighbors
-"dominate.set" <- function(aff.matrix, NR.OF.KNN) {
-  PNN.matrix = array(0, c(nrow(aff.matrix), ncol(aff.matrix)))
-  res.sort = apply(t(aff.matrix), MARGIN = 2, FUN = function(x) {return(sort(x, decreasing = TRUE, index.return = TRUE))})
-  sorted.aff.matrix = t(apply(as.matrix(1:length(res.sort)), MARGIN = 1, function(x) { return(res.sort[[x]]$x) }))
-  sorted.indices = t(apply(as.matrix(1:length(res.sort)), MARGIN = 1, function(x) { return(res.sort[[x]]$ix) }))
-
-  res = sorted.aff.matrix[, 1:NR.OF.KNN]
-  inds = array(0, c(nrow(aff.matrix), NR.OF.KNN))
-  inds = apply(inds, MARGIN = 2, FUN = function(x) {x = 1:nrow(aff.matrix)})
-  loc = sorted.indices[, 1:NR.OF.KNN]
-
-  PNN.matrix[(as.vector(loc) - 1) * nrow(aff.matrix) + as.vector(inds)] = as.vector(res)
-  PNN.matrix = (PNN.matrix + t(PNN.matrix)) / 2
-  return(PNN.matrix)
-}
-
-# Internal utility: Compute transition fields for a matrix
-"transition.fields" <- function(W) {
-  zero.index = which(apply(W, MARGIN = 1, FUN = sum) == 0)
-  W = dn(W, 'ave')
-  w = sqrt(apply(abs(W), MARGIN = 2, FUN = sum) + .Machine$double.eps)
-  W = W / t(apply(array(0, c(nrow(W), ncol(W))), MARGIN = 2, FUN = function(x) {x = w}))
-  W = W %*% t(W)
-  W[zero.index, ] = 0
-  W[, zero.index] = 0
-  return(W)
-}
-
-# Normalization for symmetric kernels
-"dn" = function(w, type) {
-  D = apply(w, MARGIN = 2, FUN = sum)
-  if(type == "ave") {
-    D = 1 / D
-    D_temp = matrix(0, nrow = length(D), ncol = length(D))
-    D_temp[cbind(1:length(D), 1:length(D))] = D
-    D = D_temp
-    wn = D %*% w
-  } else if(type == "gph") {
-    D = 1 / sqrt(D)
-    D_temp = matrix(0, nrow = length(D), ncol = length(D))
-    D_temp[cbind(1:length(D), 1:length(D))] = D
-    D = D_temp
-    wn = D %*% (w %*% D)
-  } else {
-    stop("Invalid type!")
+    switch(tolower(palette), nature = {
+      (ggsci::pal_npg("nrc"))(n)
+    }, jco = {
+      (ggsci::pal_jco("default"))(n)
+    }, lancet = {
+      (ggsci::pal_lancet("lanonc"))(n)
+    }, jama = {
+      ggsci::pal_jama()(n)
+    }, jama_classic = {
+      head(c("#164870", "#10B4F3", "#FAA935", "#2D292A", "#87AAB9", "#CAC27E", "#818282","#FE850F","#E6580E","#FC491C","#FC491C","#E6190E","#FE0F5A","#E9FF63","#E6A00E"), n)
+    },
+    RColorBrewer::brewer.pal(n, "Set1")
+    )
   }
-  return(wn)
-}
 
-# Core Spectral Clustering function
-spec.clu <- function(affinity, K, type = 3) {
-  d = rowSums(affinity)
-  d[d == 0] = .Machine$double.eps
-  D = diag(d)
-  L = D - affinity
-  if (type == 1) {
-    NL = L
-  } else if (type == 2) {
-    Di = diag(1 / d)
-    NL = Di %*% L
-  } else if(type == 3) {
-    Di = diag(1 / sqrt(d))
-    NL = Di %*% L %*% Di
+  # Generate time-specific binary event matrix
+  generate_time_event <- function(clinical, limits, labels = NULL) {
+    time <- clinical[, 1]
+    event <- clinical[, 2] == 1
+    df <- sapply(limits, function(limit) {
+      res <- event
+      res[time > limit] <- F
+      res
+    })
+    colnames(df) <- labels
+    df
   }
-  eig = eigen(NL)
-  res = sort(abs(eig$values), index.return = TRUE)
-  U = eig$vectors[, res$ix[1:K]]
-  normalize <- function(x) x / sqrt(sum(x^2))
-  if (type == 3) {
-    U = t(apply(U, 1, normalize))
+
+  # Default theme settings
+  .onLoad <- function(libname, pkgname) {
+    ggplot2::theme_set(cowplot::theme_cowplot())
   }
-  eigDiscrete = .discretisation(U)
-  eigDiscrete = eigDiscrete$discrete
-  labels = apply(eigDiscrete, 1, which.max)
-  return(labels)
+
+  # Self-Diffusion algorithm for Affinity enhancement
+  self.diffusion <- function(A, K) {
+    diag(A) = 0
+    sign_A = A
+    sign_A[which(A > 0, arr.ind = TRUE)] = 1
+    sign_A[which(A < 0, arr.ind = TRUE)] = -1
+
+    P = dominate.set(abs(A), min(K, nrow(A) - 1)) * sign_A
+    DD = apply(abs(P), MARGIN = 1, FUN = sum)
+    diag(P) = DD + 1
+    P = transition.fields(P)
+
+    eigen_P = eigen(P)
+    U = eigen_P$vectors
+    D = eigen_P$values
+    d = Re(D + .Machine$double.eps)
+
+    alpha = 0.8
+    beta = 2
+    d = ((1 - alpha) * d) / (1 - alpha * d^beta)
+
+    D = array(0, c(length(Re(d)), length(Re(d))))
+    diag(D) = Re(d)
+
+    W = U %*% D %*% t(U)
+    diagonal_matrix = array(0, c(nrow(W), ncol(W)))
+    diag(diagonal_matrix) = 1
+    W = (W * (1 - diagonal_matrix)) / apply(array(0, c(nrow(W), ncol(W))), MARGIN = 2, FUN = function(x) {x = (1 - diag(W))})
+    diag(D) = diag(D)[length(diag(D)):1]
+    W = diag(DD) %*% W
+    W = (W + t(W)) / 2
+    W[which(W < 0, arr.ind = TRUE)] = 0
+
+    return(W)
+  }
+
+  # Internal utility: Compute dominating set for K-nearest neighbors
+  "dominate.set" <- function(aff.matrix, NR.OF.KNN) {
+    PNN.matrix = array(0, c(nrow(aff.matrix), ncol(aff.matrix)))
+    res.sort = apply(t(aff.matrix), MARGIN = 2, FUN = function(x) {return(sort(x, decreasing = TRUE, index.return = TRUE))})
+    sorted.aff.matrix = t(apply(as.matrix(1:length(res.sort)), MARGIN = 1, function(x) { return(res.sort[[x]]$x) }))
+    sorted.indices = t(apply(as.matrix(1:length(res.sort)), MARGIN = 1, function(x) { return(res.sort[[x]]$ix) }))
+
+    res = sorted.aff.matrix[, 1:NR.OF.KNN]
+    inds = array(0, c(nrow(aff.matrix), NR.OF.KNN))
+    inds = apply(inds, MARGIN = 2, FUN = function(x) {x = 1:nrow(aff.matrix)})
+    loc = sorted.indices[, 1:NR.OF.KNN]
+
+    PNN.matrix[(as.vector(loc) - 1) * nrow(aff.matrix) + as.vector(inds)] = as.vector(res)
+    PNN.matrix = (PNN.matrix + t(PNN.matrix)) / 2
+    return(PNN.matrix)
+  }
+
+  # Internal utility: Compute transition fields for a matrix
+  "transition.fields" <- function(W) {
+    zero.index = which(apply(W, MARGIN = 1, FUN = sum) == 0)
+    W = dn(W, 'ave')
+    w = sqrt(apply(abs(W), MARGIN = 2, FUN = sum) + .Machine$double.eps)
+    W = W / t(apply(array(0, c(nrow(W), ncol(W))), MARGIN = 2, FUN = function(x) {x = w}))
+    W = W %*% t(W)
+    W[zero.index, ] = 0
+    W[, zero.index] = 0
+    return(W)
+  }
+
+  # Normalization for symmetric kernels
+  "dn" = function(w, type) {
+    D = apply(w, MARGIN = 2, FUN = sum)
+    if(type == "ave") {
+      D = 1 / D
+      D_temp = matrix(0, nrow = length(D), ncol = length(D))
+      D_temp[cbind(1:length(D), 1:length(D))] = D
+      D = D_temp
+      wn = D %*% w
+    } else if(type == "gph") {
+      D = 1 / sqrt(D)
+      D_temp = matrix(0, nrow = length(D), ncol = length(D))
+      D_temp[cbind(1:length(D), 1:length(D))] = D
+      D = D_temp
+      wn = D %*% (w %*% D)
+    } else {
+      stop("Invalid type!")
+    }
+    return(wn)
+  }
+
+  # Core Spectral Clustering function
+  spec.clu <- function(affinity, K, type = 3) {
+    d = rowSums(affinity)
+    d[d == 0] = .Machine$double.eps
+    D = diag(d)
+    L = D - affinity
+    if (type == 1) {
+      NL = L
+    } else if (type == 2) {
+      Di = diag(1 / d)
+      NL = Di %*% L
+    } else if(type == 3) {
+      Di = diag(1 / sqrt(d))
+      NL = Di %*% L %*% Di
+    }
+    eig = eigen(NL)
+    res = sort(abs(eig$values), index.return = TRUE)
+    U = eig$vectors[, res$ix[1:K]]
+    normalize <- function(x) x / sqrt(sum(x^2))
+    if (type == 3) {
+      U = t(apply(U, 1, normalize))
+    }
+    eigDiscrete = .discretisation(U)
+    eigDiscrete = eigDiscrete$discrete
+    labels = apply(eigDiscrete, 1, which.max)
+    return(labels)
+  }
 }

@@ -2,18 +2,18 @@
 % Please edit documentation in R/ossp_core.R
 \name{plot_ossp_km}
 \alias{plot_ossp_km}
-\title{绘制聚类生存分析 KM 曲线}
+\title{Plot Kaplan-Meier Survival Curves for Clustering Results}
 \usage{
 plot_ossp_km(survival_data, labels)
 }
 \arguments{
-\item{survival_data}{生存数据框，需包含 'Survival' 和 'Death' 列。}
+\item{survival_data}{A data frame containing survival information, including 'Survival' and 'Death' columns.}
 
-\item{labels}{聚类标签向量。}
+\item{labels}{A vector of cluster labels.}
 }
 \value{
-绘制并显示生存曲线图。
+Generates and displays a survival curve plot.
 }
 \description{
-基于聚类结果绘制 Kaplan-Meier 生存曲线。
+Plots Kaplan-Meier survival curves based on the generated clustering labels.
 }
