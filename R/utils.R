@@ -1,41 +1,30 @@
+# Function to calculate the Affinity Matrix
 affs <- function(x, na.action = na.omit) {
-  # 处理缺失值
   x <- na.action(x)
   rown <- rownames(x)
   x <- as.matrix(x)
   m <- nrow(x)
 
-  # 初始化向量和矩阵
   s <- rep(0, m)
   dota <- rowSums(x * x) / 2
-  dis <- crossprod(t(x))  # dis 是一个 m x m 的矩阵
+  dis <- crossprod(t(x))
 
-
-
-  # 计算距离矩阵
   for (i in 1:m) {
     dis[i, ] <- 2 * (-dis[i, ] + dota + rep(dota[i], m))
   }
 
-  # 防止负数出现
   dis[dis < 0] <- 0
 
-  # 计算每行的中位数
   for (i in 1:m) {
     s[i] <- median(sort(sqrt(dis[i, ]))[1:5])
   }
 
-
-
-  # 计算 Affinity 矩阵
-  km <- exp(-dis / (s %*% t(s)))  # 确保维度正确，避免广播错误
+  km <- exp(-dis / (s %*% t(s)))
 
   return(km)
 }
 
-
-# 估算图的最佳聚类数 (Rotation Cost 准则)
-# 供内部调用，评估最佳 (first) 和次优 (second) 聚类数
+# Estimate the optimal number of clusters (Rotation Cost Criterion)
 es.num.graph <- function(W, NUMC = 2:8) {
   if (min(NUMC) == 1) {
     warning('Note that we always assume there are more than one cluster.')
@@ -77,7 +66,7 @@ es.num.graph <- function(W, NUMC = 2:8) {
   return(x)
 }
 
-# 内部辅助：特征向量离散化数据处理
+# Internal utility: Discrete data processing for eigenvectors
 .discretisationEigenVectorData <- function(eigenVector) {
   Y = matrix(0, nrow(eigenVector), ncol(eigenVector))
   maxi <- function(x) {
@@ -89,7 +78,7 @@ es.num.graph <- function(W, NUMC = 2:8) {
   return(Y)
 }
 
-# 内部辅助：谱聚类离散化核心算法
+# Internal utility: Spectral clustering discretization algorithm
 .discretisation <- function(eigenVectors) {
   normalize <- function(x) x / sqrt(sum(x^2))
   eigenVectors = t(apply(eigenVectors, 1, normalize))
@@ -131,104 +120,39 @@ es.num.graph <- function(W, NUMC = 2:8) {
   return(list(discrete = eigenDiscrete, continuous = eigenVectors))
 }
 
-
-
-.csPrediction <- function(W,Y0,method){
-  ###This function implements the label propagation to predict the label(subtype) for new patients.
-  ### note method is an indicator of which semi-supervised method to use
-  # method == 0 indicates to use the local and global consistency method
-  # method >0 indicates to use label propagation method.
-
-  alpha=0.9;
-  P= W/rowSums(W)
-  if(method==0){
-    Y= (1-alpha)* solve( diag(dim(P)[1])- alpha*P)%*%Y0;
+# Internal utility: Label propagation for prediction
+.csPrediction <- function(W, Y0, method) {
+  alpha = 0.9
+  P = W / rowSums(W)
+  if (method == 0) {
+    Y = (1 - alpha) * solve(diag(dim(P)[1]) - alpha * P) %*% Y0
   } else {
-    NLabel=which(rowSums(Y0)==0)[1]-1;
-    Y=Y0;
-    for (i in 1:1000){
-      Y=P%*%Y;
-      Y[1:NLabel,]=Y0[1:NLabel,];
+    NLabel = which(rowSums(Y0) == 0)[1] - 1
+    Y = Y0
+    for (i in 1:1000) {
+      Y = P %*% Y
+      Y[1:NLabel, ] = Y0[1:NLabel, ]
     }
   }
-  return(Y);
-}
-
-.discretisation <- function(eigenVectors) {
-
-  normalize <- function(x) x / sqrt(sum(x^2))
-  eigenVectors = t(apply(eigenVectors,1,normalize))
-
-  n = nrow(eigenVectors)
-  k = ncol(eigenVectors)
-
-  R = matrix(0,k,k)
-  R[,1] = t(eigenVectors[round(n/2),])
-
-  mini <- function(x) {
-    i = which(x == min(x))
-    return(i[1])
-  }
-
-  c = matrix(0,n,1)
-  for (j in 2:k) {
-    c = c + abs(eigenVectors %*% matrix(R[,j-1],k,1))
-    i = mini(c)
-    R[,j] = t(eigenVectors[i,])
-  }
-
-  lastObjectiveValue = 0
-  for (i in 1:20) {
-    eigenDiscrete = .discretisationEigenVectorData(eigenVectors %*% R)
-
-    svde = svd(t(eigenDiscrete) %*% eigenVectors)
-    U = svde[['u']]
-    V = svde[['v']]
-    S = svde[['d']]
-
-    NcutValue = 2 * (n-sum(S))
-    if(abs(NcutValue - lastObjectiveValue) < .Machine$double.eps)
-      break
-
-    lastObjectiveValue = NcutValue
-    R = V %*% t(U)
-
-  }
-
-  return(list(discrete=eigenDiscrete,continuous =eigenVectors))
-}
-
-.discretisationEigenVectorData <- function(eigenVector) {
-
-  Y = matrix(0,nrow(eigenVector),ncol(eigenVector))
-  maxi <- function(x) {
-    i = which(x == max(x))
-    return(i[1])
-  }
-  j = apply(eigenVector,1,maxi)
-  Y[cbind(1:nrow(eigenVector),j)] = 1
-
   return(Y)
-
 }
 
-.dominateset <- function(xx,KK=20) {
-  ###This function outputs the top KK neighbors.
-
+# Internal utility: Extract the top KK neighbors
+.dominateset <- function(xx, KK = 20) {
   zero <- function(x) {
-    s = sort(x, index.return=TRUE)
-    x[s$ix[1:(length(x)-KK)]] = 0
+    s = sort(x, index.return = TRUE)
+    x[s$ix[1:(length(x) - KK)]] = 0
     return(x)
   }
   normalize <- function(X) X / rowSums(X)
-  A = matrix(0,nrow(xx),ncol(xx));
-  for(i in 1:nrow(xx)){
-    A[i,] = zero(xx[i,]);
+  A = matrix(0, nrow(xx), ncol(xx))
+  for (i in 1:nrow(xx)) {
+    A[i, ] = zero(xx[i, ])
   }
   return(normalize(A))
 }
 
-# Calculate the mutual information between vectors x and y.
+# Calculate mutual information between vectors x and y
 .mutualInformation <- function(x, y) {
   classx <- unique(x)
   classy <- unique(y)
@@ -244,12 +168,12 @@ es.num.graph <- function(W, NUMC = 2:8) {
   }
 
   probx <- matrix(rowSums(probxy), ncx, ncy)
-  proby <- matrix(colSums(probxy), ncx, ncy, byrow=TRUE)
-  result <- sum(probxy * log(probxy / (probx * proby), 2), na.rm=TRUE)
+  proby <- matrix(colSums(probxy), ncx, ncy, byrow = TRUE)
+  result <- sum(probxy * log(probxy / (probx * proby), 2), na.rm = TRUE)
   return(result)
 }
 
-# Calculate the entropy of vector x.
+# Calculate entropy of vector x
 .entropy <- function(x) {
   class <- unique(x)
   nx <- length(x)
@@ -257,15 +181,15 @@ es.num.graph <- function(W, NUMC = 2:8) {
 
   prob <- rep.int(NA, nc)
   for (i in 1:nc) {
-    prob[i] <- sum(x == class[i])/nx
+    prob[i] <- sum(x == class[i]) / nx
   }
 
   result <- -sum(prob * log(prob, 2))
   return(result)
 }
 
-.repmat = function(X,m,n){
-  ##R equivalent of repmat (matlab)
+# R equivalent of MATLAB's repmat
+.repmat = function(X, m, n) {
   if (is.null(dim(X))) {
     mx = length(X)
     nx = 1
@@ -273,24 +197,38 @@ es.num.graph <- function(W, NUMC = 2:8) {
     mx = dim(X)[1]
     nx = dim(X)[2]
   }
-  matrix(t(matrix(X,mx,nx*n)),mx*m,nx*n,byrow=T)
+  matrix(t(matrix(X, mx, nx * n)), mx * m, nx * n, byrow = T)
 }
 
-
-perc<-function(x){
-  sapply(1:length(x), function(i){
-    x[i]/sum(x)
+# Calculate proportions
+perc <- function(x) {
+  sapply(1:length(x), function(i) {
+    x[i] / sum(x)
   })
 }
 
+#' Plot Kaplan-Meier Survival Curves
+#'
+#' @description Generates Kaplan-Meier survival curves based on clustering results.
+#'
+#' @param clinical Data frame containing survival data.
+#' @param labels Vector of cluster labels.
+#' @param limit Time limit for follow-up.
+#' @param annot Annotation labels.
+#' @param color Custom color palette.
+#' @param xlab X-axis label.
+#' @param ylab Y-axis label.
+#' @param title Plot title.
+#' @param legend.pos Legend position.
+#' @param palette Color palette.
+#' @param risk.table Whether to show risk table.
+#' @param risk.table.ratio Ratio of risk table height.
+#' @param anno.pos Position of p-value annotations.
+#' @param anno.x.shift X-axis shift for p-value annotations.
+#'
 #' @import ggplot2
 #' @import survival
 #' @importFrom survminer ggsurvplot
-#' @importFrom cowplot theme_cowplot plot_grid
-#' @importFrom ggsci pal_npg pal_jco pal_lancet pal_jama
-#' @importFrom survcomp hazard.ratio
-#' @importFrom stats pchisq na.omit
-#' @importFrom utils head
 #' @export
 plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
                     xlab = "Follow up", ylab = "Survival Probability",
@@ -298,7 +236,14 @@ plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
                     risk.table = T, risk.table.ratio = 0.4, anno.pos = "bottom",
                     anno.x.shift = 0.5) {
 
-  # 1. 预处理数据
+ # Main KM Plotting Function
+plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
+                    xlab = "Follow up", ylab = "Survival Probability",
+                    title = NULL, legend.pos = "top", palette = "jama_classic",
+                    risk.table = T, risk.table.ratio = 0.4, anno.pos = "bottom",
+                    anno.x.shift = 0.5) {
+
+  # 1. Data Pre-processing
   time <- clinical[, 1]
   event <- clinical[, 2] == 1
   if (!is.null(limit)) {
@@ -307,12 +252,12 @@ plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
   }
   df <- data.frame(futime = time, fustat = event, group = labels)
 
-  # 2. 生存分析计算
+  # 2. Survival Analysis Calculation
   surv <- survival::survfit(survival::Surv(futime, fustat) ~ group, data = df)
   survstats <- survival::survdiff(survival::Surv(futime, fustat) ~ group, data = df)
   survstats$p.value <- 1 - pchisq(survstats$chisq, length(survstats$n) - 1)
 
-  # 3. 颜色处理
+  # 3. Color Handling
   if (!is.null(color)) {
     if (!is.null(names(color))) {
       labels <- factor(labels, levels = names(color))
@@ -321,7 +266,7 @@ plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
     color <- get_color(palette, n = length(unique(labels)))
   }
 
-  # 4. 标签处理
+  # 4. Label Handling
   if (inherits(labels, "factor")) {
     legend.labs <- na.omit(levels(droplevels(labels[!(is.na(time) | is.na(event))])))
   } else if (is.logical(labels)) {
@@ -332,7 +277,7 @@ plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
     labels <- factor(labels, levels = legend.labs)
   }
 
-  # 5. 内部科学记数法函数
+  # 5. Scientific Notation Helper
   fancy_scientific <- function(l, dig = 3) {
     l <- format(l, digits = dig, scientific = TRUE)
     l <- gsub("^(.*)e", "'\\1'e", l)
@@ -340,28 +285,28 @@ plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
     parse(text = l)
   }
 
-  # 6. 绘图核心
+  # 6. Core Plotting
   p <- survminer::ggsurvplot(surv, data = df, xlab = xlab,
-                             ylab = ylab, palette = color, legend = legend.pos,
-                             legend.labs = legend.labs,
-                             risk.table = risk.table,
-                             risk.table.title = ggplot2::element_blank(),
-                             risk.table.y.text = FALSE,
-                             ggtheme = cowplot::theme_cowplot())
+                               ylab = ylab, palette = color, legend = legend.pos,
+                               legend.labs = legend.labs,
+                               risk.table = risk.table,
+                               risk.table.title = ggplot2::element_blank(),
+                               risk.table.y.text = FALSE,
+                               ggtheme = cowplot::theme_cowplot())
 
   p$plot <- p$plot + ggplot2::ggtitle(title) +
     ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5),
                    legend.title = ggplot2::element_blank())
 
-  # 7. 注释文字准备
+  # 7. Annotation Preparation
   anno.text <- ifelse(survstats$p.value == 0, "italic(P)<1%*%10^{-22}",
                       paste0("italic(P)==", fancy_scientific(survstats$p.value, 3)))
   anno.y.shift <- 0
 
   if (length(legend.labs) == 2) {
     hr <- survcomp::hazard.ratio(labels[!(is.na(time) | is.na(event))],
-                                 time[!(is.na(time) | is.na(event))],
-                                 event[!(is.na(time) | is.na(event))])
+                                  time[!(is.na(time) | is.na(event))],
+                                  event[!(is.na(time) | is.na(event))])
     anno.text <- c(anno.text, sprintf("HR == %3.2f~(%3.2f - %3.2f)",
                                       hr$hazard.ratio, hr$lower, hr$upper))
     anno.y.shift <- c(anno.y.shift + 0.15, 0)
@@ -372,7 +317,7 @@ plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
     anno.y.shift <- c(anno.y.shift + 0.15, 0)
   }
 
-  # 8. 添加注释到图表
+  # 8. Add Annotations to Plot
   if (anno.pos == "bottom") {
     p$plot <- p$plot + ggplot2::annotate("text", x = 0, y = anno.y.shift,
                                          label = anno.text, hjust = 0, vjust = 0, parse = TRUE)
@@ -382,21 +327,20 @@ plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
                                          hjust = 0, vjust = 2, parse = TRUE)
   }
 
-  # 9. 风险表拼图
+  # 9. Final Composition with Risk Table
   if (risk.table) {
     p$table <- p$table + ggplot2::theme(axis.title.y = ggplot2::element_blank())
     pp <- cowplot::plot_grid(plotlist = list(p$plot + ggplot2::theme(axis.title.x = ggplot2::element_blank()),
                                              p$table + ggplot2::labs(x = xlab)),
-                             labels = "", ncol = 1, align = "v",
-                             rel_heights = c(1, risk.table.ratio))
+                               labels = "", ncol = 1, align = "v",
+                               rel_heights = c(1, risk.table.ratio))
     return(pp)
   } else {
     return(p$plot)
   }
 }
 
-
-
+# Color palette helper
 get_color <- function(palette, n = 12) {
   if(length(palette) > 1) return(palette)
 
@@ -415,7 +359,7 @@ get_color <- function(palette, n = 12) {
   )
 }
 
-#' @export
+# Generate time-specific binary event matrix
 generate_time_event <- function(clinical, limits, labels = NULL) {
   time <- clinical[, 1]
   event <- clinical[, 2] == 1
@@ -428,176 +372,99 @@ generate_time_event <- function(clinical, limits, labels = NULL) {
   df
 }
 
-
+# Default theme settings
 .onLoad <- function(libname, pkgname) {
   ggplot2::theme_set(cowplot::theme_cowplot())
 }
 
-
-
-get_color <- function(palette, n = 6) {
-  if(length(palette) > 1) return(palette)
-
-  switch(tolower(palette), nature = {
-    (ggsci::pal_npg("nrc"))(n)
-  }, jco = {
-    (ggsci::pal_jco("default"))(n)
-  }, lancet = {
-    (ggsci::pal_lancet("lanonc"))(n)
-  }, jama = {
-    ggsci::pal_jama()(n)
-  }, jama_classic = {
-    head(c("#164870", "#10B4F3", "#FAA935", "#2D292A", "#87AAB9", "#CAC27E", "#818282"), n)
-  },
-  RColorBrewer::brewer.pal(n, "Set1")
-  )
-}
-
-
-
-
-self.diffusion <- function(A,K) {
-
-  # set the values of the diagonal of A to 0
+# Self-Diffusion algorithm for Affinity enhancement
+self.diffusion <- function(A, K) {
   diag(A) = 0
-
-  # compute the sign matrix of A
   sign_A = A
-  sign_A[which(A>0,arr.ind=TRUE)] = 1
-  sign_A[which(A<0,arr.ind=TRUE)] = -1
+  sign_A[which(A > 0, arr.ind = TRUE)] = 1
+  sign_A[which(A < 0, arr.ind = TRUE)] = -1
 
-  # compute the dominate set for A and K
-  P = dominate.set(abs(A),min(K,nrow(A)-1)) * sign_A
-
-  # sum the absolute value of each row of P
-  DD = apply(abs(P),MARGIN=1,FUN=sum)
-
-  # set DD+1 to the diagonal of P
+  P = dominate.set(abs(A), min(K, nrow(A) - 1)) * sign_A
+  DD = apply(abs(P), MARGIN = 1, FUN = sum)
   diag(P) = DD + 1
-
-  # compute the transition field of P
   P = transition.fields(P)
 
-  # compute the eigenvalues and eigenvectors of P
   eigen_P = eigen(P)
   U = eigen_P$vectors
   D = eigen_P$values
-
-  # set to d the real part of the diagonal of D
   d = Re(D + .Machine$double.eps)
 
-  #perform the diffusion
   alpha = 0.8
   beta = 2
-  d = ((1-alpha)*d)/(1-alpha*d^beta)
+  d = ((1 - alpha) * d) / (1 - alpha * d^beta)
 
-  # set to D the real part of the diagonal of d
-  D = array(0,c(length(Re(d)),length(Re(d))))
+  D = array(0, c(length(Re(d)), length(Re(d))))
   diag(D) = Re(d)
 
-  # finally compute W
   W = U %*% D %*% t(U)
-  diagonal_matrix = array(0,c(nrow(W),ncol(W)))
+  diagonal_matrix = array(0, c(nrow(W), ncol(W)))
   diag(diagonal_matrix) = 1
-  W = (W * (1-diagonal_matrix)) / apply(array(0,c(nrow(W),ncol(W))),MARGIN=2,FUN=function(x) {x=(1-diag(W))})
+  W = (W * (1 - diagonal_matrix)) / apply(array(0, c(nrow(W), ncol(W))), MARGIN = 2, FUN = function(x) {x = (1 - diag(W))})
   diag(D) = diag(D)[length(diag(D)):1]
   W = diag(DD) %*% W
   W = (W + t(W)) / 2
-
-  W[which(W<0,arr.ind=TRUE)] = 0
+  W[which(W < 0, arr.ind = TRUE)] = 0
 
   return(W)
-
 }
 
-# compute the dominate set for the matrix aff.matrix and NR.OF.KNN
-"dominate.set" <- function( aff.matrix, NR.OF.KNN ) {
+# Internal utility: Compute dominating set for K-nearest neighbors
+"dominate.set" <- function(aff.matrix, NR.OF.KNN) {
+  PNN.matrix = array(0, c(nrow(aff.matrix), ncol(aff.matrix)))
+  res.sort = apply(t(aff.matrix), MARGIN = 2, FUN = function(x) {return(sort(x, decreasing = TRUE, index.return = TRUE))})
+  sorted.aff.matrix = t(apply(as.matrix(1:length(res.sort)), MARGIN = 1, function(x) { return(res.sort[[x]]$x) }))
+  sorted.indices = t(apply(as.matrix(1:length(res.sort)), MARGIN = 1, function(x) { return(res.sort[[x]]$ix) }))
 
-  # create the structure to save the results
-  PNN.matrix = array(0,c(nrow(aff.matrix),ncol(aff.matrix)))
+  res = sorted.aff.matrix[, 1:NR.OF.KNN]
+  inds = array(0, c(nrow(aff.matrix), NR.OF.KNN))
+  inds = apply(inds, MARGIN = 2, FUN = function(x) {x = 1:nrow(aff.matrix)})
+  loc = sorted.indices[, 1:NR.OF.KNN]
 
-  # sort each row of aff.matrix in descending order and saves the sorted
-  # array and a collection of vectors with the original indices
-  res.sort = apply(t(aff.matrix),MARGIN=2,FUN=function(x) {return(sort(x, decreasing = TRUE, index.return = TRUE))})
-  sorted.aff.matrix = t(apply(as.matrix(1:length(res.sort)),MARGIN=1,function(x) { return(res.sort[[x]]$x) }))
-  sorted.indices = t(apply(as.matrix(1:length(res.sort)),MARGIN=1,function(x) { return(res.sort[[x]]$ix) }))
-
-  # get the first NR.OF.KNN columns of the sorted array
-  res = sorted.aff.matrix[,1:NR.OF.KNN]
-
-  # create a matrix of NR.OF.KNN columns by binding vectors of
-  # integers from 1 to the number of rows/columns of aff.matrix
-  inds = array(0,c(nrow(aff.matrix),NR.OF.KNN))
-  inds = apply(inds,MARGIN=2,FUN=function(x) {x=1:nrow(aff.matrix)})
-
-  # get the first NR.OF.KNN columns of the indices of aff.matrix
-  loc = sorted.indices[,1:NR.OF.KNN]
-
-  # assign to PNN.matrix the sorted indices
-  PNN.matrix[(as.vector(loc)-1)*nrow(aff.matrix)+as.vector(inds)] = as.vector(res)
-
-  # compute the final results and return them
-  PNN.matrix = (PNN.matrix + t(PNN.matrix))/2
-
+  PNN.matrix[(as.vector(loc) - 1) * nrow(aff.matrix) + as.vector(inds)] = as.vector(res)
+  PNN.matrix = (PNN.matrix + t(PNN.matrix)) / 2
   return(PNN.matrix)
-
 }
 
-# compute the transition field of the given matrix
-"transition.fields" <- function( W ) {
-
-  # get any index of columns with all 0s
-  zero.index = which(apply(W,MARGIN=1,FUN=sum)==0)
-
-  # compute the transition fields
-  W = dn(W,'ave')
-
-  w = sqrt(apply(abs(W),MARGIN=2,FUN=sum)+.Machine$double.eps)
-  W = W / t(apply(array(0,c(nrow(W),ncol(W))),MARGIN=2,FUN=function(x) {x=w}))
+# Internal utility: Compute transition fields for a matrix
+"transition.fields" <- function(W) {
+  zero.index = which(apply(W, MARGIN = 1, FUN = sum) == 0)
+  W = dn(W, 'ave')
+  w = sqrt(apply(abs(W), MARGIN = 2, FUN = sum) + .Machine$double.eps)
+  W = W / t(apply(array(0, c(nrow(W), ncol(W))), MARGIN = 2, FUN = function(x) {x = w}))
   W = W %*% t(W)
-
-  # set to 0 the elements of zero.index
-  W[zero.index,] = 0
-  W[,zero.index] = 0
-
+  W[zero.index, ] = 0
+  W[, zero.index] = 0
   return(W)
-
 }
 
-# normalizes a symmetric kernel
-"dn" = function( w, type ) {
-
-  # compute the sum of any column
-  D = apply(w,MARGIN=2,FUN=sum)
-
-  # type "ave" returns D^-1*W
-  if(type=="ave") {
+# Normalization for symmetric kernels
+"dn" = function(w, type) {
+  D = apply(w, MARGIN = 2, FUN = sum)
+  if(type == "ave") {
     D = 1 / D
-    D_temp = matrix(0,nrow=length(D),ncol=length(D))
-    D_temp[cbind(1:length(D),1:length(D))] = D
+    D_temp = matrix(0, nrow = length(D), ncol = length(D))
+    D_temp[cbind(1:length(D), 1:length(D))] = D
     D = D_temp
     wn = D %*% w
-  }
-  # type "gph" returns D^-1/2*W*D^-1/2
-  else if(type=="gph") {
+  } else if(type == "gph") {
     D = 1 / sqrt(D)
-    D_temp = matrix(0,nrow=length(D),ncol=length(D))
-    D_temp[cbind(1:length(D),1:length(D))] = D
+    D_temp = matrix(0, nrow = length(D), ncol = length(D))
+    D_temp[cbind(1:length(D), 1:length(D))] = D
     D = D_temp
     wn = D %*% (w %*% D)
-  }
-  else {
+  } else {
     stop("Invalid type!")
   }
-
   return(wn)
-
 }
 
-
-spec.clu<- function(affinity, K, type=3) {
-
-
+# Core Spectral Clustering function
+spec.clu <- function(affinity, K, type = 3) {
   d = rowSums(affinity)
   d[d == 0] = .Machine$double.eps
   D = diag(d)
@@ -612,64 +479,14 @@ spec.clu<- function(affinity, K, type=3) {
     NL = Di %*% L %*% Di
   }
   eig = eigen(NL)
-  res = sort(abs(eig$values),index.return = TRUE)
-  U = eig$vectors[,res$ix[1:K]]
+  res = sort(abs(eig$values), index.return = TRUE)
+  U = eig$vectors[, res$ix[1:K]]
   normalize <- function(x) x / sqrt(sum(x^2))
   if (type == 3) {
-    U = t(apply(U,1,normalize))
+    U = t(apply(U, 1, normalize))
   }
   eigDiscrete = .discretisation(U)
   eigDiscrete = eigDiscrete$discrete
-  labels = apply(eigDiscrete,1,which.max)
-
-
-
+  labels = apply(eigDiscrete, 1, which.max)
   return(labels)
-}
-
-
-
-
-.discretisation <- function(eigenVectors) {
-
-  normalize <- function(x) x / sqrt(sum(x^2))
-  eigenVectors = t(apply(eigenVectors,1,normalize))
-
-  n = nrow(eigenVectors)
-  k = ncol(eigenVectors)
-
-  R = matrix(0,k,k)
-  R[,1] = t(eigenVectors[round(n/2),])
-
-  mini <- function(x) {
-    i = which(x == min(x))
-    return(i[1])
-  }
-
-  c = matrix(0,n,1)
-  for (j in 2:k) {
-    c = c + abs(eigenVectors %*% matrix(R[,j-1],k,1))
-    i = mini(c)
-    R[,j] = t(eigenVectors[i,])
-  }
-
-  lastObjectiveValue = 0
-  for (i in 1:20) {
-    eigenDiscrete = .discretisationEigenVectorData(eigenVectors %*% R)
-
-    svde = svd(t(eigenDiscrete) %*% eigenVectors)
-    U = svde[['u']]
-    V = svde[['v']]
-    S = svde[['d']]
-
-    NcutValue = 2 * (n-sum(S))
-    if(abs(NcutValue - lastObjectiveValue) < .Machine$double.eps)
-      break
-
-    lastObjectiveValue = NcutValue
-    R = V %*% t(U)
-
-  }
-
-  return(list(discrete=eigenDiscrete,continuous =eigenVectors))
 }
