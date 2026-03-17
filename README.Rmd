@@ -1,29 +1,27 @@
-OSSP (Multi-omics integration via Spectral decomposition on Self-diffusion network)
-OSSP is an R package implementing an unsupervised framework for integrating cancer multi-omics data.
+# OSSP
 
-Overview
+**OSSP** (Multi-omics integration via Spectral decomposition on Self-diffusion network) is an R package implementing an unsupervised framework for integrating cancer multi-omics data.
 
-<br>
+---
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/bc8ffd29-e6bf-401f-8cfb-8473a77dd2e0" width="800">
-</p>
+## Overview
 
-<br>
+![OSSP Overview](https://github.com/user-attachments/assets/bc8ffd29-e6bf-401f-8cfb-8473a77dd2e0)
 
-Here, we propose OSSP, an unsupervised framework for integrating cancer multi-omics data. OSSP works in three main steps:
+Here, we propose **OSSP**, an unsupervised framework for integrating cancer multi-omics data. OSSP works in three main steps:
 
-1.Self-diffusion similarity network:
-The input multi-omics data is converted into a patient-to-patient similarity network. A self-diffusion process is applied to enhance similarity measurement.
+1. **Self-diffusion similarity network:** The input multi-omics data is converted into a patient-to-patient similarity network. A self-diffusion process is applied to enhance similarity measurement.
 
-2.Spectral decomposition for integration:
-Eigenvalues are selected from the enhanced network via spectral decomposition to integrate multiple omics datasets.
+2. **Spectral decomposition for integration:** Eigenvalues are selected from the enhanced network via spectral decomposition to integrate multiple omics datasets.
 
-3.Clustering and molecular characterization:
-A clustering method (e.g., K-means) is applied on the integrated data to obtain patient subtypes, followed by molecular characterization of each subtype.
+3. **Clustering and molecular characterization:** A clustering method (e.g., K-means) is applied on the integrated data to obtain patient subtypes, followed by molecular characterization of each subtype.
 
+---
 
-Installation
+## Installation
+
 You can install the package directly from GitHub:
+
+```r
 # install.packages("devtools") # if not installed
 devtools::install_github("Duanx-lab/OSSP")
