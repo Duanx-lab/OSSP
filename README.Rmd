@@ -3,7 +3,7 @@ OSSP is an R package implementing an unsupervised framework for integrating canc
 
 Overview
 
-<img width="1810" height="688" alt="db7eca6b9618bbd4558dd016edfc54cb" src="https://github.com/user-attachments/assets/bc8ffd29-e6bf-401f-8cfb-8473a77dd2e0" />
+![Overview](https://github.com/user-attachments/assets/bc8ffd29-e6bf-401f-8cfb-8473a77dd2e0)
 
 Here, we propose OSSP, an unsupervised framework for integrating cancer multi-omics data. OSSP works in three main steps:
 
