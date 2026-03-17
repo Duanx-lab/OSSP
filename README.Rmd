@@ -1,8 +1,8 @@
-<!-- Uploading "db7eca6b9618bbd4558dd016edfc54cb.png"... -->
 OSSP (Multi-omics integration via Spectral decomposition on Self-diffusion network)
 OSSP is an R package implementing an unsupervised framework for integrating cancer multi-omics data.
 
 Overview
+<img width="1810" height="688" alt="db7eca6b9618bbd4558dd016edfc54cb" src="https://github.com/user-attachments/assets/bc8ffd29-e6bf-401f-8cfb-8473a77dd2e0" />
 Here, we propose OSSP, an unsupervised framework for integrating cancer multi-omics data. OSSP works in three main steps:
 
 1.Self-diffusion similarity network:
