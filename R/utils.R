@@ -230,12 +230,6 @@ perc <- function(x) {
 #' @import survival
 #' @importFrom survminer ggsurvplot
 #' @export
-plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
-                    xlab = "Follow up", ylab = "Survival Probability",
-                    title = NULL, legend.pos = "top", palette = "jama_classic",
-                    risk.table = T, risk.table.ratio = 0.4, anno.pos = "bottom",
-                    anno.x.shift = 0.5) {
-
   # Main KM Plotting Function
   plot_KM <- function(clinical, labels, limit = NULL, annot = NULL, color = NULL,
                       xlab = "Follow up", ylab = "Survival Probability",
