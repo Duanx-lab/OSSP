@@ -2,16 +2,17 @@
 % Please edit documentation in R/ossp_core.R
 \name{preprocess_mydat}
 \alias{preprocess_mydat}
-\title{Data Normalization and Missing Value Handling}
+\title{Data Normalization Preprocessing (Internal)}
 \usage{
 preprocess_mydat(data)
 }
 \arguments{
-\item{data}{A numeric matrix (samples as rows, features as columns).}
+\item{data}{A numeric matrix where samples are rows and features are columns.}
 }
 \value{
-Returns a standardized numeric matrix.
+A standardized numeric matrix with NAs replaced by 0.
 }
 \description{
-Performs Z-score normalization on the input matrix and fills any resulting NA values with 0.
+Performs Z-score normalization on the input matrix and handles missing values.
 }
+\keyword{internal}

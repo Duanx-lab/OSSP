@@ -2,18 +2,18 @@
 % Please edit documentation in R/ossp_core.R
 \name{plot_ossp_km}
 \alias{plot_ossp_km}
-\title{Plot Kaplan-Meier Survival Curves for Clustering Results}
+\title{Plot Kaplan-Meier Survival Curves}
 \usage{
 plot_ossp_km(survival_data, labels)
 }
 \arguments{
-\item{survival_data}{A data frame containing survival information, including 'Survival' and 'Death' columns.}
+\item{survival_data}{A data frame containing survival metadata with 'Survival' and 'Death' columns.}
 
 \item{labels}{A vector of cluster labels.}
 }
 \value{
-Generates and displays a survival curve plot.
+A survival plot object.
 }
 \description{
-Plots Kaplan-Meier survival curves based on the generated clustering labels.
+Generates Kaplan-Meier survival plots based on OSSP clustering results.
 }

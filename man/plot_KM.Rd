@@ -2,54 +2,24 @@
 % Please edit documentation in R/utils.R
 \name{plot_KM}
 \alias{plot_KM}
-\title{Plot Kaplan-Meier Survival Curves}
+\title{Plot Kaplan-Meier Curves}
 \usage{
-plot_KM(
-  clinical,
-  labels,
-  limit = NULL,
-  annot = NULL,
-  color = NULL,
-  xlab = "Follow up",
-  ylab = "Survival Probability",
-  title = NULL,
-  legend.pos = "top",
-  palette = "jama_classic",
-  risk.table = T,
-  risk.table.ratio = 0.4,
-  anno.pos = "bottom",
-  anno.x.shift = 0.5
-)
+plot_KM(clinical, labels, palette = "jama_classic", risk.table = TRUE, ...)
 }
 \arguments{
-\item{clinical}{Data frame containing survival data.}
+\item{clinical}{A \code{Surv} object from the \code{survival} package.}
 
-\item{labels}{Vector of cluster labels.}
+\item{labels}{A vector of cluster/group labels.}
 
-\item{limit}{Time limit for follow-up.}
+\item{palette}{Color palette name. Defaults to "jama_classic".}
 
-\item{annot}{Annotation labels.}
+\item{risk.table}{Logical; whether to display a risk table.}
 
-\item{color}{Custom color palette.}
-
-\item{xlab}{X-axis label.}
-
-\item{ylab}{Y-axis label.}
-
-\item{title}{Plot title.}
-
-\item{legend.pos}{Legend position.}
-
-\item{palette}{Color palette.}
-
-\item{risk.table}{Whether to show risk table.}
-
-\item{risk.table.ratio}{Ratio of risk table height.}
-
-\item{anno.pos}{Position of p-value annotations.}
-
-\item{anno.x.shift}{X-axis shift for p-value annotations.}
+\item{...}{Additional arguments passed to ggsurvplot.}
+}
+\value{
+A ggplot object (cowplot grid).
 }
 \description{
-Generates Kaplan-Meier survival curves based on clustering results.
+Generates survival plots with risk tables.
 }

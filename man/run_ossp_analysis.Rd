@@ -4,20 +4,23 @@
 \alias{run_ossp_analysis}
 \title{OSSP Multi-omics Integrative Clustering Analysis}
 \usage{
-run_ossp_analysis(mydatGE, mydatME, mydatMI, K_clusters = 7)
+run_ossp_analysis(data_list, K_clusters = 7, type = 3)
 }
 \arguments{
-\item{mydatGE}{Gene expression profile matrix (samples as rows, genes as columns).}
+\item{data_list}{A list of numeric matrices (e.g., list(GE, ME, MI)).}
 
-\item{mydatME}{DNA methylation data matrix (samples as rows, probes as columns).}
+\item{K_clusters}{The number of clusters to be formed. Default is 7.}
 
-\item{mydatMI}{miRNA expression data matrix (samples as rows, miRNAs as columns).}
-
-\item{K_clusters}{Preset number of clusters; defaults to 7.}
+\item{type}{The type of Laplacian matrix; 1: Unnormalized, 2: Random Walk, 3: Symmetric (Default).}
 }
 \value{
-A list containing clustering labels (labels) and the fused reduced feature matrix (reduced_data).
+A list containing:
+\itemize{
+\item \code{labels}: A vector of integers indicating the cluster assignment for each sample.
+\item \code{reduced_data}: The integrated feature matrix after dimensionality reduction.
+}
 }
 \description{
-Executes integration of multi-omics data, feature extraction, and K-means clustering.
+Executes the core pipeline including multi-omics data integration,
+self-diffusion-based feature extraction, and K-means clustering.
 }

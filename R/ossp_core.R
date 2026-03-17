@@ -1,87 +1,127 @@
-# Function 1: Data Normalization
-#' Data Normalization and Missing Value Handling
-#'
-#' @description Performs Z-score normalization on the input matrix and fills any resulting NA values with 0.
-#'
-#' @param data A numeric matrix (samples as rows, features as columns).
-#'
-#' @return Returns a standardized numeric matrix.
+#' @title Data Normalization Preprocessing (Internal)
+#' @description Performs Z-score normalization on the input matrix and handles missing values.
+#' @param data A numeric matrix where samples are rows and features are columns.
+#' @return A standardized numeric matrix with NAs replaced by 0.
+#' @keywords internal
 preprocess_mydat <- function(data) {
-  # Apply Z-score normalization column-wise
-  data_scaled <- apply(data, 2, function(x) (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE))
-  # Replace NA values (e.g., from zero-variance features) with 0
+  # Apply Z-score normalization column-wise: (x - mean) / sd
+  data_scaled <- apply(data, 2, function(x) {
+    s_dev <- sd(x, na.rm = TRUE)
+    # Handle zero-variance features to avoid NaN
+    if(is.na(s_dev) || s_dev == 0) return(rep(0, length(x)))
+    (x - mean(x, na.rm = TRUE)) / s_dev
+  })
+  # Replace resulting NA values (e.g., from missing data) with 0
   data_scaled[is.na(data_scaled)] <- 0
   return(data_scaled)
 }
 
-# Function 2: Main Analysis Pipeline
-#' OSSP Multi-omics Integrative Clustering Analysis
-#'
-#' @description Executes integration of multi-omics data, feature extraction, and K-means clustering.
-#'
-#' @param mydatGE Gene expression profile matrix (samples as rows, genes as columns).
-#' @param mydatME DNA methylation data matrix (samples as rows, probes as columns).
-#' @param mydatMI miRNA expression data matrix (samples as rows, miRNAs as columns).
-#' @param K_clusters Preset number of clusters; defaults to 7.
-#'
-#' @return A list containing clustering labels (labels) and the fused reduced feature matrix (reduced_data).
+#' @title OSSP Multi-omics Integrative Clustering Analysis
+#' @description Executes the core pipeline including multi-omics data integration,
+#' self-diffusion-based feature extraction, and K-means clustering.
+#' @param data_list A list of numeric matrices (e.g., list(GE, ME, MI)).
+#' @param K_clusters The number of clusters to be formed. Default is 7.
+#' @param type The type of Laplacian matrix; 1: Unnormalized, 2: Random Walk, 3: Symmetric (Default).
+#' @return A list containing:
+#' \itemize{
+#'   \item \code{labels}: A vector of integers indicating the cluster assignment for each sample.
+#'   \item \code{reduced_data}: The integrated feature matrix after dimensionality reduction.
+#' }
+#' @importFrom stats kmeans
 #' @export
-run_ossp_analysis <- function(mydatGE, mydatME, mydatMI, K_clusters = 7) {
-  # Pre-processing
-  d <- list(
-    preprocess_mydat(mydatGE),
-    preprocess_mydat(mydatME),
-    preprocess_mydat(mydatMI)
-  )
+run_ossp_analysis <- function(data_list, K_clusters = 7, type = 3) {
 
-  # Eigenvector extraction logic
-  ul <- lapply(1:3, function(i) {
+  # 1. Pre-processing
+  message("Step 1: Pre-processing multi-omics data...")
+  d <- lapply(data_list, preprocess_mydat)
+
+  # 2. Eigenvector extraction
+  message("Step 2: Extracting spectral eigenvectors...")
+  ul <- lapply(seq_along(d), function(i) {
+    # Calculate affinity and apply self-diffusion (assumes dependency functions are available)
     x <- affs(d[[i]])
     affinity <- self.diffusion(x, 4)
 
-    # Core Spectral Clustering logic
+    # Construct Laplacian Matrix
     d_vec <- rowSums(affinity)
-    # Avoid division by zero by using machine epsilon
+    # Use machine epsilon to avoid division by zero
     d_vec[d_vec == 0] <- .Machine$double.eps
-    Di <- diag(1 / sqrt(d_vec))
-    L <- diag(d_vec) - affinity
-    NL <- Di %*% L %*% Di
+
+    if (type == 1) {
+      NL <- diag(d_vec) - affinity
+    } else if (type == 2) {
+      NL <- diag(length(d_vec)) - diag(1 / d_vec) %*% affinity
+    } else {
+      # Symmetric Normalized Laplacian
+      Di <- diag(1 / sqrt(d_vec))
+      NL <- diag(length(d_vec)) - Di %*% affinity %*% Di
+    }
 
     eig <- eigen(NL)
-    # Sort eigenvalues to find the smallest components
     res <- sort(abs(eig$values), index.return = TRUE)
 
-    # Automatic determination of feature dimensions (Eigengap heuristic)
+    # Automated feature dimension determination (Eigengap heuristic)
     e <- res$x[1:15]
-    sa <- sapply(1:14, function(i) abs((e[i+1] - e[i])))
+    sa <- sapply(1:14, function(j) abs((e[j+1] - e[j])))
     K_auto <- which(sa == max(sa)) + 3
 
-    # Extract and normalize the selected eigenvectors
+    # Extract and normalize eigenvectors
     U <- eig$vectors[, res$ix[1:K_auto]]
-    U <- t(apply(U, 1, function(x) x / sqrt(sum(x^2))))
+    if (type == 3) {
+      U <- t(apply(U, 1, function(x) x / sqrt(sum(x^2))))
+    }
     return(U)
   })
 
-  # Concatenation and final clustering
+  # 3. Concatenation and Clustering
+  message("Step 3: Integrating features and performing K-means clustering...")
   rd <- do.call(cbind, ul)
   set.seed(11111)
-  labx <- kmeans(rd, K_clusters)
+  labx <- kmeans(rd, centers = K_clusters)
 
   return(list(labels = labx$cluster, reduced_data = rd))
 }
 
-# Function 3: Result Visualization
-#' Plot Kaplan-Meier Survival Curves for Clustering Results
-#'
-#' @description Plots Kaplan-Meier survival curves based on the generated clustering labels.
-#'
-#' @param survival_data A data frame containing survival information, including 'Survival' and 'Death' columns.
+#' @title Evaluate Clustering Quality (Silhouette Analysis)
+#' @description Computes the fused similarity matrix and generates a Silhouette plot
+#' to assess the consistency within clusters.
+#' @param reduced_data The fused feature matrix returned by \code{run_ossp_analysis}.
 #' @param labels A vector of cluster labels.
-#'
-#' @import ggplot2
+#' @return A silhouette object containing the calculated widths.
+#' @export
+eval_ossp_clustering <- function(reduced_data, labels) {
+  message("Step 4: Evaluating clustering quality...")
+  # Compute similarity matrix for the integrated features
+  x_sim <- affs(reduced_data)
+
+  # Calculate Silhouette widths (requires silhouette_SimilarityMatrix function)
+  sil <- silhouette_SimilarityMatrix(labels, x_sim)
+
+  # Generate Plot
+  plot(sil, main = "OSSP Clustering Silhouette Plot")
+  return(sil)
+}
+
+#' @title Plot Kaplan-Meier Survival Curves
+#' @description Generates Kaplan-Meier survival plots based on OSSP clustering results.
+#' @param survival_data A data frame containing survival metadata with 'Survival' and 'Death' columns.
+#' @param labels A vector of cluster labels.
 #' @importFrom survival Surv
-#' @return Generates and displays a survival curve plot.
+#' @return A survival plot object.
 #' @export
 plot_ossp_km <- function(survival_data, labels) {
-  # Implementation goes here
+  message("Step 5: Plotting Kaplan-Meier survival curves...")
+  time <- as.numeric(survival_data$Survival)
+  event <- as.numeric(survival_data$Death)
+  clins <- survival::Surv(time, event)
+
+  # Call KM plotting function
+  plot_KM(
+    clins,
+    as.integer(labels),
+    palette = "lanonc",
+    xlab = "Follow up (Months)",
+    ylab = "Overall Survival Probability",
+    risk.table = TRUE
+  )
 }
